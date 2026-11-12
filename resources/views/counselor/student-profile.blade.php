@@ -59,6 +59,22 @@
         <div x-show="!isEditing" class="space-y-4 text-xs">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="p-3 bg-[#FDFCF8] rounded-2xl border border-[#E6E2D3]">
+                    <span class="text-[#A39B8B] font-medium">Email:</span>
+                    <p class="font-semibold text-[#333D32] mt-1">{{ $student->email }}</p>
+                </div>
+                <div class="p-3 bg-[#FDFCF8] rounded-2xl border border-[#E6E2D3]">
+                    <span class="text-[#A39B8B] font-medium">Kelas:</span>
+                    <p class="font-semibold text-[#333D32] mt-1">{{ $student->kelas ?? '-' }}</p>
+                </div>
+                <div class="p-3 bg-[#FDFCF8] rounded-2xl border border-[#E6E2D3]">
+                    <span class="text-[#A39B8B] font-medium">Nama Wali Kelas:</span>
+                    <p class="font-semibold text-[#333D32] mt-1">{{ $student->nama_wali_kelas ?? '-' }}</p>
+                </div>
+                <div class="p-3 bg-[#FDFCF8] rounded-2xl border border-[#E6E2D3]">
+                    <span class="text-[#A39B8B] font-medium">Nomor Telepon:</span>
+                    <p class="font-semibold text-[#333D32] mt-1">{{ $student->no_telepon ?? '-' }}</p>
+                </div>
+                <div class="p-3 bg-[#FDFCF8] rounded-2xl border border-[#E6E2D3]">
                     <span class="text-[#A39B8B] font-medium">Alamat Tinggal:</span>
                     <p class="font-semibold text-[#333D32] mt-1">{{ $student->alamat ?? '-' }}</p>
                 </div>
@@ -138,12 +154,34 @@
             @csrf
             @method('PUT')
 
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-[#5A6D58] mb-1">Email</label>
+                    <input type="email" name="email" value="{{ $student->email ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]" readonly>
+                    <span class="text-[10px] text-[#A39B8B]">Email siswa hanya penanda (readonly).</span>
+                </div>
+                <div>
+                    <label class="block font-bold text-[#5A6D58] mb-1">Kelas</label>
+                    <input type="text" name="kelas" value="{{ $student->kelas ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#5A6D58] mb-1">Nama Wali Kelas</label>
+                    <input type="text" name="nama_wali_kelas" value="{{ $student->nama_wali_kelas ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#5A6D58] mb-1">Nomor Telepon</label>
+                    <input type="text" name="no_telepon" value="{{ $student->no_telepon ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
+                </div>
+            </div>
+
+            <hr class="border-[#E6E2D3]/50">
+
             <div>
                 <label class="block font-bold text-[#5A6D58] mb-1">Alamat Tinggal</label>
                 <input type="text" name="alamat" value="{{ $student->alamat ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
             </div>
             <div>
-                <label class="block font-bold text-[#5A6D58] mb-1">Nama Orang Tua</label>
+                <label class="block font-bold text-[#5A6D58] mb-1">Nama Orang Tua / Wali</label>
                 <input type="text" name="nama_orang_tua" value="{{ $student->nama_orang_tua ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
             </div>
             <div>
