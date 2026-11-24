@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Screening DASS-21 - E-BK SMAN 1 Lohbener')
+@section('title', 'Screening I-DASS-Y (DASS for Youth) - E-BK SMAN 1 Lohbener')
 
 @section('content')
 
@@ -18,20 +18,20 @@
 
                 <i data-lucide="activity" class="w-4 h-4"></i>
 
-                INSTRUMEN STANDAR DASS-21
+                INSTRUMEN STANDAR I-DASS-Y (DASS FOR YOUTH)
 
             </span>
 
         </div>
 
         <h1 class="text-2xl md:text-3xl font-bold">
-            Deteksi Dini Kesehatan Mental Siswa (DASS-21)
+            Deteksi Dini Kesehatan Mental Siswa (I-DASS-Y)
         </h1>
 
         <p class="text-sm md:text-base text-white/80 mt-3 leading-relaxed max-w-4xl">
-            Kuesioner Depresi, Kecemasan, dan Stres yang terdiri dari
-            21 pernyataan. Hasil penilaian digunakan sebagai informasi
-            awal untuk membantu proses layanan Bimbingan dan Konseling.
+            Kuesioner I-DASS-Y (Depression, Anxiety, and Stress Scales for Youth) versi Bahasa Indonesia
+            yang dirancang dan divalidasi khusus untuk kelompok remaja dan siswa sekolah, terdiri dari
+            21 pernyataan. Hasil penilaian digunakan sebagai informasi awal untuk membantu proses layanan Bimbingan dan Konseling.
         </p>
 
     </div>
@@ -126,7 +126,308 @@
 
 
     {{-- ========================================================= --}}
-    {{-- FORM DASS-21 --}}
+    {{-- HASIL SCREENING TERAKHIR --}}
+    {{-- ========================================================= --}}
+
+    @if(isset($latestResult) && $latestResult)
+
+        <div class="bg-white rounded-3xl border border-[#E6E2D3] p-6 md:p-8 shadow-sm space-y-6">
+
+            {{-- Header Hasil --}}
+            <div class="border-b border-[#F5F2EB] pb-4">
+
+                <div class="flex items-center justify-between flex-wrap gap-3">
+
+                    <div class="flex items-center gap-3">
+
+                        <div class="w-10 h-10 rounded-xl bg-[#E8F0E7] text-[#5A6D58] flex items-center justify-center">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                        </div>
+
+                        <div>
+                            <h2 class="text-lg font-bold text-[#5A6D58]">
+                                Hasil Screening Terakhir
+                            </h2>
+
+                            {{-- 3. Tanggal screening --}}
+                            <p class="text-xs text-[#A39B8B] mt-1">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 inline-block mr-1"></i>
+                                {{ \Carbon\Carbon::parse($latestResult->created_at)->translatedFormat('l, d F Y • H:i') }} WIB
+                            </p>
+                        </div>
+
+                    </div>
+
+                    {{-- Risiko Keseluruhan --}}
+                    @php
+                        $riskColors = [
+                            'Normal'       => 'bg-[#E8F0E7] text-[#5A6D58] border-[#8BA888]',
+                            'Ringan'       => 'bg-blue-50 text-blue-700 border-blue-200',
+                            'Sedang'       => 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                            'Parah'        => 'bg-orange-50 text-orange-700 border-orange-200',
+                            'Sangat Parah' => 'bg-red-50 text-red-700 border-red-200',
+                        ];
+                        $riskClass = $riskColors[$latestResult->overall_risk] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                    @endphp
+
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border {{ $riskClass }}">
+                        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                        Risiko Keseluruhan: {{ $latestResult->overall_risk }}
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            {{-- 1. Skor masing-masing dimensi & 2. Kategori hasil --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                {{-- DEPRESI --}}
+                @php
+                    $depClass = $riskColors[$latestResult->depression_category] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                @endphp
+                <div class="rounded-2xl border border-[#E6E2D3] p-5 bg-[#FDFCF8] space-y-3">
+
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-[#5A6D58] text-white flex items-center justify-center">
+                            <i data-lucide="cloud-rain" class="w-4 h-4"></i>
+                        </div>
+                        <span class="text-sm font-bold text-[#333D32]">Depresi</span>
+                    </div>
+
+                    <div class="text-center py-2">
+                        <p class="text-3xl font-black text-[#5A6D58]">
+                            {{ $latestResult->depression_score }}
+                        </p>
+                        <p class="text-[10px] text-[#A39B8B] mt-1 uppercase tracking-wider">Skor</p>
+                    </div>
+
+                    <div class="text-center">
+                        <span class="inline-block px-3 py-1 rounded-full text-xs font-bold border {{ $depClass }}">
+                            {{ $latestResult->depression_category }}
+                        </span>
+                    </div>
+
+                </div>
+
+
+                {{-- KECEMASAN --}}
+                @php
+                    $anxClass = $riskColors[$latestResult->anxiety_category] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                @endphp
+                <div class="rounded-2xl border border-[#E6E2D3] p-5 bg-[#FDFCF8] space-y-3">
+
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-[#5A6D58] text-white flex items-center justify-center">
+                            <i data-lucide="zap" class="w-4 h-4"></i>
+                        </div>
+                        <span class="text-sm font-bold text-[#333D32]">Kecemasan</span>
+                    </div>
+
+                    <div class="text-center py-2">
+                        <p class="text-3xl font-black text-[#5A6D58]">
+                            {{ $latestResult->anxiety_score }}
+                        </p>
+                        <p class="text-[10px] text-[#A39B8B] mt-1 uppercase tracking-wider">Skor</p>
+                    </div>
+
+                    <div class="text-center">
+                        <span class="inline-block px-3 py-1 rounded-full text-xs font-bold border {{ $anxClass }}">
+                            {{ $latestResult->anxiety_category }}
+                        </span>
+                    </div>
+
+                </div>
+
+
+                {{-- STRES --}}
+                @php
+                    $strClass = $riskColors[$latestResult->stress_category] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                @endphp
+                <div class="rounded-2xl border border-[#E6E2D3] p-5 bg-[#FDFCF8] space-y-3">
+
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-[#5A6D58] text-white flex items-center justify-center">
+                            <i data-lucide="flame" class="w-4 h-4"></i>
+                        </div>
+                        <span class="text-sm font-bold text-[#333D32]">Stres</span>
+                    </div>
+
+                    <div class="text-center py-2">
+                        <p class="text-3xl font-black text-[#5A6D58]">
+                            {{ $latestResult->stress_score }}
+                        </p>
+                        <p class="text-[10px] text-[#A39B8B] mt-1 uppercase tracking-wider">Skor</p>
+                    </div>
+
+                    <div class="text-center">
+                        <span class="inline-block px-3 py-1 rounded-full text-xs font-bold border {{ $strClass }}">
+                            {{ $latestResult->stress_category }}
+                        </span>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- 4. Disclaimer: Screening awal, bukan diagnosis --}}
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+
+                <div class="flex items-start gap-3">
+
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
+
+                    <div>
+
+                        <p class="text-sm font-bold text-amber-800">
+                            Penting: Hasil Ini Bukan Diagnosis
+                        </p>
+
+                        <p class="text-xs text-amber-700 mt-1 leading-relaxed">
+                            Hasil I-DASS-Y merupakan <strong>screening awal</strong> yang bersifat
+                            skrining mandiri dan <strong>bukan merupakan diagnosis klinis</strong>.
+                            Hasil ini digunakan sebagai informasi pendukung untuk proses
+                            layanan Bimbingan dan Konseling di sekolah. Untuk diagnosis resmi,
+                            diperlukan asesmen lebih lanjut oleh psikolog atau psikiater profesional.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    @endif
+
+
+    {{-- ========================================================= --}}
+    {{-- RIWAYAT HASIL SCREENING --}}
+    {{-- ========================================================= --}}
+
+    @if(isset($screeningHistory) && $screeningHistory->count() > 1)
+
+        <div class="bg-white rounded-3xl border border-[#E6E2D3] p-6 md:p-8 shadow-sm space-y-4">
+
+            <div class="flex items-center gap-3 border-b border-[#F5F2EB] pb-4">
+
+                <div class="w-10 h-10 rounded-xl bg-[#E8F0E7] text-[#5A6D58] flex items-center justify-center">
+                    <i data-lucide="history" class="w-5 h-5"></i>
+                </div>
+
+                <div>
+                    <h2 class="text-lg font-bold text-[#5A6D58]">
+                        Riwayat Screening
+                    </h2>
+                    <p class="text-xs text-[#A39B8B] mt-0.5">
+                        Total {{ $screeningHistory->count() }} kali screening telah dilakukan.
+                    </p>
+                </div>
+
+            </div>
+
+
+            {{-- Tabel Riwayat --}}
+            <div class="overflow-x-auto">
+
+                <table class="w-full text-xs">
+
+                    <thead>
+                        <tr class="border-b border-[#E6E2D3]">
+                            <th class="text-left py-3 px-3 font-bold text-[#5A6D58]">No</th>
+                            <th class="text-left py-3 px-3 font-bold text-[#5A6D58]">Tanggal</th>
+                            <th class="text-center py-3 px-3 font-bold text-[#5A6D58]">Depresi</th>
+                            <th class="text-center py-3 px-3 font-bold text-[#5A6D58]">Kecemasan</th>
+                            <th class="text-center py-3 px-3 font-bold text-[#5A6D58]">Stres</th>
+                            <th class="text-center py-3 px-3 font-bold text-[#5A6D58]">Risiko</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @foreach($screeningHistory as $index => $history)
+
+                            @php
+                                $histRiskClass = $riskColors[$history->overall_risk] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                                $histDepClass  = $riskColors[$history->depression_category] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                                $histAnxClass  = $riskColors[$history->anxiety_category] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                                $histStrClass  = $riskColors[$history->stress_category] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                            @endphp
+
+                            <tr class="border-b border-[#F5F2EB] hover:bg-[#FDFCF8] transition-colors {{ $index === 0 ? 'bg-[#FDFCF8]' : '' }}">
+
+                                <td class="py-3 px-3 text-[#5C564B]">
+                                    {{ $index + 1 }}
+                                    @if($index === 0)
+                                        <span class="ml-1 inline-block px-1.5 py-0.5 bg-[#5A6D58] text-white text-[9px] font-bold rounded-md">
+                                            Terbaru
+                                        </span>
+                                    @endif
+                                </td>
+
+                                <td class="py-3 px-3 text-[#5C564B] whitespace-nowrap">
+                                    {{ \Carbon\Carbon::parse($history->created_at)->translatedFormat('d M Y, H:i') }}
+                                </td>
+
+                                <td class="py-3 px-3 text-center">
+                                    <span class="font-bold text-[#333D32]">{{ $history->depression_score }}</span>
+                                    <br>
+                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $histDepClass }}">
+                                        {{ $history->depression_category }}
+                                    </span>
+                                </td>
+
+                                <td class="py-3 px-3 text-center">
+                                    <span class="font-bold text-[#333D32]">{{ $history->anxiety_score }}</span>
+                                    <br>
+                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $histAnxClass }}">
+                                        {{ $history->anxiety_category }}
+                                    </span>
+                                </td>
+
+                                <td class="py-3 px-3 text-center">
+                                    <span class="font-bold text-[#333D32]">{{ $history->stress_score }}</span>
+                                    <br>
+                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $histStrClass }}">
+                                        {{ $history->stress_category }}
+                                    </span>
+                                </td>
+
+                                <td class="py-3 px-3 text-center">
+                                    <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $histRiskClass }}">
+                                        {{ $history->overall_risk }}
+                                    </span>
+                                </td>
+
+                            </tr>
+
+                        @endforeach
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            {{-- Disclaimer kecil di bawah tabel --}}
+            <div class="flex items-center gap-2 text-[10px] text-[#A39B8B] pt-2">
+                <i data-lucide="info" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                <span>
+                    Seluruh hasil di atas merupakan screening awal dan bukan diagnosis klinis.
+                </span>
+            </div>
+
+        </div>
+
+    @endif
+
+
+    {{-- ========================================================= --}}
+    {{-- FORM I-DASS-Y --}}
     {{-- ========================================================= --}}
 
     <form
@@ -173,7 +474,7 @@
 
                     Bacalah setiap pernyataan di bawah ini dan pilih opsi
                     nilai <strong>0 - 3</strong> yang paling menggambarkan
-                    kondisi yang kamu rasakan dalam <strong>1 minggu terakhir</strong>.
+                    seberapa benar kondisi yang kamu rasakan dalam <strong>1 minggu terakhir</strong>.
 
                 </p>
 
@@ -188,7 +489,7 @@
                             </span>
 
                             <span class="text-[#5C564B]">
-                                Tidak pernah
+                                Tidak benar
                             </span>
 
                         </div>
@@ -200,7 +501,7 @@
                             </span>
 
                             <span class="text-[#5C564B]">
-                                Kadang-kadang
+                                Sedikit benar
                             </span>
 
                         </div>
@@ -212,7 +513,7 @@
                             </span>
 
                             <span class="text-[#5C564B]">
-                                Sering
+                                Agak benar
                             </span>
 
                         </div>
@@ -224,7 +525,7 @@
                             </span>
 
                             <span class="text-[#5C564B]">
-                                Hampir selalu
+                                Sangat benar
                             </span>
 
                         </div>
@@ -282,10 +583,10 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
 
                                     @foreach([
-                                        0 => 'Tidak pernah',
-                                        1 => 'Kadang-kadang',
-                                        2 => 'Sering',
-                                        3 => 'Hampir selalu'
+                                        0 => 'Tidak benar',
+                                        1 => 'Sedikit benar',
+                                        2 => 'Agak benar',
+                                        3 => 'Sangat benar'
                                     ] as $val => $label)
 
                                         <label
@@ -346,7 +647,7 @@
                         </h3>
 
                         <p class="text-xs text-[#A39B8B] mt-1">
-                            Data pertanyaan DASS-21 belum tersedia di database.
+                            Data pertanyaan I-DASS-Y belum tersedia di database.
                         </p>
 
                     </div>
@@ -538,8 +839,8 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault();
 
             alert(
-                'Mohon jawab semua pertanyaan DASS-21 terlebih dahulu.\n\n' +
-                'Pertanyaan yang belum dijawab: ' +
+                'Mohon jawab semua pernyataan I-DASS-Y terlebih dahulu.\n\n' +
+                'Pernyataan yang belum dijawab: nomor ' +
                 unanswered.join(', ')
             );
 

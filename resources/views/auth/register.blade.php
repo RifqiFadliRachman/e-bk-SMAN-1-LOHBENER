@@ -25,13 +25,12 @@
             <!-- Logo / Header -->
             <div class="text-center mb-8">
 
-                <div
-                    class="mx-auto w-16 h-16 bg-[#5A6D58] rounded-2xl flex items-center justify-center shadow-lg mb-4"
-                >
-                    <i
-                        data-lucide="heart-handshake"
-                        class="w-8 h-8 text-white"
-                    ></i>
+                <div class="mx-auto w-20 h-20 mb-4 flex items-center justify-center">
+                    <img
+                        src="{{ asset('images/logo-sman1lohbener.jpg') }}"
+                        alt="Logo SMAN 1 Lohbener"
+                        class="w-full h-full object-contain drop-shadow-md"
+                    >
                 </div>
 
                 <h1 class="text-2xl font-bold text-[#333D32]">

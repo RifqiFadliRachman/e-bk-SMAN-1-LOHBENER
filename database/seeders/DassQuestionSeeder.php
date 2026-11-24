@@ -7,172 +7,159 @@ use Illuminate\Support\Facades\DB;
 
 class DassQuestionSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     * Menggunakan instrumen I-DASS-Y (Depression Anxiety Stress Scales for Youth versi Bahasa Indonesia)
+     * Adaptasi resmi untuk remaja / siswa sekolah.
+     */
     public function run(): void
     {
         $questions = [
-
             [
                 'question_number' => 1,
                 'category' => 'stress',
                 'dimension' => 'stress',
-                'text' => 'Saya merasa sulit untuk tenang.',
+                'text' => 'Saya merasa kesal dengan hal-hal kecil.',
             ],
-
             [
                 'question_number' => 2,
                 'category' => 'anxiety',
                 'dimension' => 'anxiety',
-                'text' => 'Saya merasa mulut saya terasa kering.',
+                'text' => 'Saya merasa pusing, seperti akan pingsan.',
             ],
-
             [
                 'question_number' => 3,
                 'category' => 'depression',
                 'dimension' => 'depression',
-                'text' => 'Saya tidak dapat merasakan perasaan positif sama sekali.',
+                'text' => 'Saya tidak menikmati apapun.',
             ],
-
             [
                 'question_number' => 4,
                 'category' => 'anxiety',
                 'dimension' => 'anxiety',
-                'text' => 'Saya mengalami kesulitan bernapas.',
+                'text' => 'Saya kesulitan bernapas (misalnya bernapas dengan sangat cepat), meskipun tidak sedang berolahraga dan tidak sedang sakit.',
             ],
-
             [
                 'question_number' => 5,
                 'category' => 'depression',
                 'dimension' => 'depression',
-                'text' => 'Saya merasa sulit untuk memulai melakukan sesuatu.',
+                'text' => 'Saya membenci hidup saya.',
             ],
-
             [
                 'question_number' => 6,
                 'category' => 'stress',
                 'dimension' => 'stress',
-                'text' => 'Saya cenderung bereaksi berlebihan terhadap situasi.',
+                'text' => 'Saya bereaksi berlebihan dalam menghadapi situasi.',
             ],
-
             [
                 'question_number' => 7,
                 'category' => 'anxiety',
                 'dimension' => 'anxiety',
-                'text' => 'Saya merasa gemetar, misalnya pada tangan.',
+                'text' => 'Tangan saya terasa gemetar.',
             ],
-
             [
                 'question_number' => 8,
                 'category' => 'stress',
                 'dimension' => 'stress',
-                'text' => 'Saya merasa menghabiskan banyak energi untuk merasa gugup.',
+                'text' => 'Saya merasa khawatir tentang banyak hal.',
             ],
-
             [
                 'question_number' => 9,
                 'category' => 'anxiety',
                 'dimension' => 'anxiety',
-                'text' => 'Saya khawatir terhadap situasi yang membuat saya panik atau terlihat bodoh.',
+                'text' => 'Saya merasa sangat ketakutan.',
             ],
-
             [
                 'question_number' => 10,
                 'category' => 'depression',
                 'dimension' => 'depression',
-                'text' => 'Saya merasa tidak ada yang dapat saya harapkan.',
+                'text' => 'Tidak ada hal baik yang bisa saya tunggu-tunggu.',
             ],
-
             [
                 'question_number' => 11,
                 'category' => 'stress',
                 'dimension' => 'stress',
-                'text' => 'Saya merasa gelisah.',
+                'text' => 'Saya mudah merasa jengkel atau kesal.',
             ],
-
             [
                 'question_number' => 12,
                 'category' => 'stress',
                 'dimension' => 'stress',
-                'text' => 'Saya merasa sulit untuk bersantai.',
+                'text' => 'Saya merasa sulit untuk merasa santai.',
             ],
-
             [
                 'question_number' => 13,
                 'category' => 'depression',
                 'dimension' => 'depression',
-                'text' => 'Saya merasa sedih dan tertekan.',
+                'text' => 'Saya tidak bisa berhenti merasa sedih.',
             ],
-
             [
                 'question_number' => 14,
                 'category' => 'stress',
                 'dimension' => 'stress',
-                'text' => 'Saya tidak dapat menoleransi gangguan terhadap apa yang sedang saya lakukan.',
+                'text' => 'Saya merasa kesal ketika ada yang menyela atau mengganggu apa yang sedang saya lakukan.',
             ],
-
             [
                 'question_number' => 15,
                 'category' => 'anxiety',
                 'dimension' => 'anxiety',
-                'text' => 'Saya merasa hampir panik.',
+                'text' => 'Saya merasa seperti akan panik.',
             ],
-
             [
                 'question_number' => 16,
                 'category' => 'depression',
                 'dimension' => 'depression',
-                'text' => 'Saya tidak merasa antusias terhadap sesuatu.',
+                'text' => 'Saya membenci diri saya sendiri.',
             ],
-
             [
                 'question_number' => 17,
                 'category' => 'depression',
                 'dimension' => 'depression',
-                'text' => 'Saya merasa tidak berharga sebagai seorang individu.',
+                'text' => 'Saya merasa diri saya tidak berguna atau tidak baik.',
             ],
-
             [
                 'question_number' => 18,
                 'category' => 'stress',
                 'dimension' => 'stress',
-                'text' => 'Saya merasa mudah tersinggung.',
+                'text' => 'Saya mudah merasa terusik atau terganggu.',
             ],
-
             [
                 'question_number' => 19,
                 'category' => 'anxiety',
                 'dimension' => 'anxiety',
-                'text' => 'Saya menyadari kerja jantung saya meskipun tidak sedang melakukan aktivitas fisik.',
+                'text' => 'Saya bisa merasakan jantung saya berdebar sangat cepat, meskipun tidak sedang berolahraga berat.',
             ],
-
             [
                 'question_number' => 20,
                 'category' => 'anxiety',
                 'dimension' => 'anxiety',
                 'text' => 'Saya merasa takut tanpa alasan yang jelas.',
             ],
-
             [
                 'question_number' => 21,
                 'category' => 'depression',
                 'dimension' => 'depression',
-                'text' => 'Saya merasa hidup ini tidak berarti.',
+                'text' => 'Saya merasa hidup ini sangat buruk.',
             ],
         ];
 
-        // Hapus data pertanyaan sebelumnya
-        DB::table('dass_questions')->delete();
-
-        $now = now();
-
-        foreach ($questions as &$question) {
-            $question['created_at'] = $now;
-            $question['updated_at'] = $now;
+        foreach ($questions as $question) {
+            DB::table('dass_questions')->updateOrInsert(
+                ['question_number' => $question['question_number']],
+                [
+                    'category' => $question['category'],
+                    'dimension' => $question['dimension'],
+                    'text' => $question['text'],
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
         }
 
-        DB::table('dass_questions')->insert($questions);
-
-        $this->command->info(
-            'Berhasil memasukkan 21 pertanyaan DASS-21.'
-        );
+        if (isset($this->command)) {
+            $this->command->info(
+                'Berhasil memperbarui 21 pertanyaan dengan instrumen I-DASS-Y (DASS for Youth).'
+            );
+        }
     }
 }

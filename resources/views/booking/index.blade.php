@@ -633,9 +633,24 @@
 
                                         @if($b->status === 'Selesai')
 
-                                            <span class="text-[11px] text-[#5A6D58] font-bold">
-                                                Sesi selesai
-                                            </span>
+                                            <form
+                                                action="{{ route('booking.destroy', $b->id) }}"
+                                                method="POST"
+                                                class="inline"
+                                                onsubmit="return confirm('Apakah Anda yakin ingin menghapus data sesi konseling siswa ini yang sudah selesai? Data yang dihapus tidak dapat dikembalikan.')"
+                                            >
+                                                @csrf
+                                                @method('DELETE')
+
+                                                <button
+                                                    type="submit"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FEE2E2] hover:bg-[#FECACA] text-[#991B1B] border border-[#F87171]/50 rounded-xl font-bold text-[11px] shadow-xs transition-colors"
+                                                    title="Hapus riwayat sesi konseling selesai"
+                                                >
+                                                    <i data-lucide="trash-2" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </form>
 
                                         @endif
 

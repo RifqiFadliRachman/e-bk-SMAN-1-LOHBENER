@@ -20,7 +20,7 @@
             </h2>
             <p class="text-xs text-[#D8E2D7] mt-1 leading-relaxed">
                 @if($isCounselor)
-                    Membantu Guru BK merumuskan strategi pendekatan intervensi psikopedagogis berdasarkan skor DASS-21 dan situasi siswa.
+                    Membantu Guru BK merumuskan strategi pendekatan intervensi psikopedagogis berdasarkan skor I-DASS-Y dan situasi siswa.
                 @else
                     Ruang aman berbasis kecerdasan buatan untuk membantu mengekspresikan pikiran, mengurai emosi, dan menyajikan latihan relaksasi mandiri.
                 @endif
@@ -44,7 +44,7 @@
                     rows="4"
                     x-model="promptInput"
                     placeholder="{{ $isCounselor
-                        ? 'Contoh: Siswa mengalami penurunan nilai drastis dan skor DASS-21 kecemasan parah (18). Langkah intervensi awal apa yang disarankan?'
+                        ? 'Contoh: Siswa mengalami penurunan nilai drastis dan skor I-DASS-Y kecemasan parah (18). Langkah intervensi awal apa yang disarankan?'
                         : 'Contoh: Saya merasa sangat cemas menghadapi ujian besok dan sulit berkonsentrasi...' }}"
                     class="w-full text-xs p-3 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl outline-none focus:ring-2 focus:ring-[#8BA888] font-medium text-[#333D32]"
                 ></textarea>

@@ -118,10 +118,10 @@
                 </template>
             </div>
 
-            {{-- DASS-21 Status --}}
+            {{-- I-DASS-Y Status --}}
             @if($latestDass)
             <div class="p-4 rounded-2xl border border-[#E6E2D3] bg-[#FDFCF8] space-y-2">
-                <span class="font-bold text-[#5A6D58]">Status Mental Terakhir (DASS-21)</span>
+                <span class="font-bold text-[#5A6D58]">Status Mental Terakhir (I-DASS-Y)</span>
                 <div class="grid grid-cols-3 gap-2 text-center pt-1">
                     <div class="p-2 bg-white rounded-xl border border-[#E6E2D3]">
                         <div class="text-[10px] text-[#A39B8B]">Depresi</div>
@@ -142,65 +142,49 @@
             <div class="flex justify-end gap-2 pt-2">
                 <button
                     @click="isEditing = true"
-                    class="bg-[#5A6D58] hover:bg-[#4E614C] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all"
+                    class="bg-[#5A6D58] hover:bg-[#4E614C] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
                 >
-                    Edit &amp; Update Enkripsi
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit Catatan Khusus &amp; Riwayat Psikologis
                 </button>
             </div>
         </div>
 
-        {{-- Edit Mode Form --}}
+        {{-- Edit Mode Form: Khusus Catatan & Riwayat Psikologis (Profil Siswa Readonly) --}}
         <form x-show="isEditing" action="{{ route('counselor.student-profile.update', $student->id) }}" method="POST" class="space-y-4 text-xs">
             @csrf
             @method('PUT')
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block font-bold text-[#5A6D58] mb-1">Email</label>
-                    <input type="email" name="email" value="{{ $student->email ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]" readonly>
-                    <span class="text-[10px] text-[#A39B8B]">Email siswa hanya penanda (readonly).</span>
-                </div>
-                <div>
-                    <label class="block font-bold text-[#5A6D58] mb-1">Kelas</label>
-                    <input type="text" name="kelas" value="{{ $student->kelas ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
-                </div>
-                <div>
-                    <label class="block font-bold text-[#5A6D58] mb-1">Nama Wali Kelas</label>
-                    <input type="text" name="nama_wali_kelas" value="{{ $student->nama_wali_kelas ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
-                </div>
-                <div>
-                    <label class="block font-bold text-[#5A6D58] mb-1">Nomor Telepon</label>
-                    <input type="text" name="no_telepon" value="{{ $student->no_telepon ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
+            <div class="p-4 rounded-2xl bg-[#F5F2EB]/70 border border-[#E6E2D3] flex items-start gap-2.5">
+                <i data-lucide="info" class="w-4 h-4 text-[#8BA888] flex-shrink-0 mt-0.5"></i>
+                <div class="text-[11px] text-[#5C564B] leading-relaxed">
+                    <strong class="text-[#5A6D58]">Hak Akses Konselor:</strong> Profil data diri siswa (Nama, Kelas, Wali Kelas, Kontak, Alamat) bersifat tetap/readonly dan tidak dapat diubah oleh Guru BK. Anda hanya memiliki hak akses untuk memperbarui <strong>Catatan Khusus &amp; Riwayat Psikologis</strong> di bawah ini.
                 </div>
             </div>
 
-            <hr class="border-[#E6E2D3]/50">
-
-            <div>
-                <label class="block font-bold text-[#5A6D58] mb-1">Alamat Tinggal</label>
-                <input type="text" name="alamat" value="{{ $student->alamat ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
-            </div>
-            <div>
-                <label class="block font-bold text-[#5A6D58] mb-1">Nama Orang Tua / Wali</label>
-                <input type="text" name="nama_orang_tua" value="{{ $student->nama_orang_tua ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
-            </div>
-            <div>
-                <label class="block font-bold text-[#5A6D58] mb-1">Kontak Darurat Orang Tua</label>
-                <input type="text" name="kontak_darurat" value="{{ $student->kontak_darurat ?? '' }}" class="w-full p-2.5 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">
-            </div>
-            <div>
-                <label class="block font-bold text-[#5A6D58] mb-1">
-                    Catatan Khusus Sensitif (Otomatis Dienkripsi AES-256)
+            <div class="p-4 rounded-2xl border border-[#8BA888]/40 bg-[#F5F8F5] space-y-2">
+                <label class="block font-bold text-[#5A6D58]">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="file-text" class="w-4 h-4 text-[#8BA888]"></i>
+                        Catatan Khusus &amp; Riwayat Psikologis Siswa
+                    </span>
+                    <span class="text-[10px] text-[#A39B8B] font-normal block mt-0.5">
+                        Tuliskan catatan observasi, riwayat konseling, atau data pendukung psikologis siswa secara rahasia. Data otomatis disimpan menggunakan enkripsi AES-256.
+                    </span>
                 </label>
-                <textarea name="catatan_sensitif" rows="3" class="w-full p-3 bg-[#FDFCF8] border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32]">{{ $decryptedNote ?? '' }}</textarea>
+                <textarea
+                    name="catatan_sensitif"
+                    rows="5"
+                    placeholder="Tuliskan catatan khusus atau riwayat psikologis siswa di sini..."
+                    class="w-full p-3 bg-white border border-[#E6E2D3] rounded-xl font-medium outline-none focus:ring-2 focus:ring-[#8BA888] text-[#333D32] leading-relaxed"
+                >{{ $decryptedNote ?? '' }}</textarea>
             </div>
 
             <div class="flex justify-end gap-2 pt-2">
-                <button type="button" @click="isEditing = false" class="px-4 py-2 font-bold text-[#5C564B] bg-[#F5F2EB] rounded-xl">
+                <button type="button" @click="isEditing = false" class="px-4 py-2 font-bold text-[#5C564B] bg-[#F5F2EB] hover:bg-[#E6E2D3] rounded-xl transition-all">
                     Batal
                 </button>
-                <button type="submit" class="px-5 py-2 font-bold text-white bg-[#5A6D58] hover:bg-[#4E614C] rounded-xl shadow-xs">
-                    Simpan &amp; Re-Encrypt
+                <button type="submit" class="px-5 py-2 font-bold text-white bg-[#5A6D58] hover:bg-[#4E614C] rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+                    <i data-lucide="lock" class="w-3.5 h-3.5"></i> Simpan &amp; Enkripsi Catatan
                 </button>
             </div>
         </form>

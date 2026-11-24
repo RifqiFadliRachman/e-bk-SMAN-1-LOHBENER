@@ -12,12 +12,12 @@ class BKController extends Controller
 {
     /*
     |--------------------------------------------------------------------------
-    | DASS-21
+    | I-DASS-Y
     |--------------------------------------------------------------------------
     */
 
     /**
-     * Tampilkan halaman DASS-21.
+     * Tampilkan halaman I-DASS-Y.
      */
     public function showDass21()
     {
@@ -25,15 +25,95 @@ class BKController extends Controller
             ->orderBy('question_number')
             ->get();
 
+        $latestResult = null;
+        $screeningHistory = collect();
+
+        if (Auth::check() && Auth::user()->role === 'siswa') {
+
+            /*
+            |----------------------------------------------------------
+            | Hasil screening terakhir
+            |----------------------------------------------------------
+            */
+
+            $latestResult = DB::table('dass_results')
+                ->where('student_id', Auth::id())
+                ->orderByDesc('created_at')
+                ->first();
+
+            if ($latestResult) {
+                $latestResult->depression_category =
+                    $this->getDepressionCategory(
+                        (int) $latestResult->depression_score
+                    );
+
+                $latestResult->anxiety_category =
+                    $this->getAnxietyCategory(
+                        (int) $latestResult->anxiety_score
+                    );
+
+                $latestResult->stress_category =
+                    $this->getStressCategory(
+                        (int) $latestResult->stress_score
+                    );
+
+                $latestResult->overall_risk =
+                    $this->getOverallRisk(
+                        $latestResult->depression_category,
+                        $latestResult->anxiety_category,
+                        $latestResult->stress_category
+                    );
+            }
+
+            /*
+            |----------------------------------------------------------
+            | Riwayat seluruh screening siswa
+            |----------------------------------------------------------
+            */
+
+            $screeningHistory = DB::table('dass_results')
+                ->where('student_id', Auth::id())
+                ->orderByDesc('created_at')
+                ->get();
+
+            foreach ($screeningHistory as $row) {
+                $row->depression_category =
+                    $this->getDepressionCategory(
+                        (int) $row->depression_score
+                    );
+
+                $row->anxiety_category =
+                    $this->getAnxietyCategory(
+                        (int) $row->anxiety_score
+                    );
+
+                $row->stress_category =
+                    $this->getStressCategory(
+                        (int) $row->stress_score
+                    );
+
+                $row->overall_risk =
+                    $this->getOverallRisk(
+                        $row->depression_category,
+                        $row->anxiety_category,
+                        $row->stress_category
+                    );
+            }
+        }
+
         return view(
             'dass21.index',
-            compact('questions')
+            compact(
+                'questions',
+                'latestResult',
+                'screeningHistory'
+            )
         );
     }
 
 
     /**
-     * Simpan hasil DASS-21.
+     * Simpan hasil I-DASS-Y.
      */
     public function storeDass21(Request $request)
     {
@@ -182,7 +262,7 @@ class BKController extends Controller
             ->route('dass21.index')
             ->with(
                 'success',
-                'Hasil Screening DASS-21 berhasil disimpan!'
+                'Hasil Screening I-DASS-Y berhasil disimpan!'
             );
     }
 
@@ -907,6 +987,39 @@ class BKController extends Controller
             );
     }
 
+    /**
+     * Hapus Riwayat Sesi Konseling Selesai (Khusus Guru BK).
+     */
+    public function destroyBooking($id)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'guru_bk') {
+            abort(403, 'Akses terbatas untuk Guru BK.');
+        }
+
+        $booking = DB::table('bookings')
+            ->where('id', $id)
+            ->where('counselor_id', Auth::id())
+            ->first();
+
+        if (!$booking) {
+            return redirect()
+                ->route('booking.index')
+                ->with('error', 'Data jadwal konseling tidak ditemukan atau bukan milik Anda.');
+        }
+
+        if ($booking->status !== 'Selesai') {
+            return redirect()
+                ->route('booking.index')
+                ->with('error', 'Hanya sesi konseling yang sudah selesai yang dapat dihapus.');
+        }
+
+        DB::table('bookings')->where('id', $id)->delete();
+
+        return redirect()
+            ->route('booking.index')
+            ->with('success', 'Riwayat sesi konseling selesai berhasil dihapus.');
+    }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -1243,6 +1356,12 @@ class BKController extends Controller
                 ->count();
 
 
+        // Ambil semua data tindak lanjut per siswa untuk mencocokkan waktu screening
+        $allTindakLanjuts = DB::table('tindak_lanjuts')
+            ->select('id', 'student_id', 'tanggal_tindak_lanjut', 'created_at')
+            ->get()
+            ->groupBy('student_id');
+
         $studentsResults =
             DB::table('dass_results')
                 ->join(
@@ -1260,6 +1379,30 @@ class BKController extends Controller
                     'dass_results.created_at'
                 )
                 ->get();
+
+        // Tandai setiap baris screening: HANYA berstatus sudah ditindak lanjuti
+        // jika ADA tindak lanjut yang dilakukan pada atau setelah tanggal screening tersebut.
+        $studentsWithPendingScreening = [];
+
+        foreach ($studentsResults as $row) {
+            $studentTindak = $allTindakLanjuts->get($row->student_id, collect());
+            $screeningTime = \Carbon\Carbon::parse($row->created_at);
+
+            $hasFollowUp = $studentTindak->contains(function ($tl) use ($screeningTime) {
+                $tlDate = \Carbon\Carbon::parse($tl->tanggal_tindak_lanjut ?? $tl->created_at);
+                $tlCreated = \Carbon\Carbon::parse($tl->created_at);
+                $threshold = $screeningTime->copy()->subMinute();
+
+                return $tlDate->greaterThanOrEqualTo($threshold)
+                    || $tlCreated->greaterThanOrEqualTo($threshold);
+            });
+
+            $row->has_tindak_lanjut = $hasFollowUp;
+
+            if (!$hasFollowUp) {
+                $studentsWithPendingScreening[$row->student_id] = true;
+            }
+        }
 
 
         $highRiskStudentsCount =
@@ -1311,6 +1454,57 @@ class BKController extends Controller
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | PENCATATAN TINDAK LANJUT GURU BK
+        |--------------------------------------------------------------------------
+        */
+
+        $tindakLanjuts = DB::table('tindak_lanjuts')
+            ->join('users as student', 'tindak_lanjuts.student_id', '=', 'student.id')
+            ->join('users as counselor', 'tindak_lanjuts.counselor_id', '=', 'counselor.id')
+            ->select(
+                'tindak_lanjuts.*',
+                'student.name as student_name',
+                'student.kelas as student_kelas',
+                'counselor.name as counselor_name'
+            )
+            ->orderByDesc('tindak_lanjuts.tanggal_tindak_lanjut')
+            ->get();
+
+        foreach ($tindakLanjuts as $row) {
+            $row->formatted_tanggal = \Carbon\Carbon::parse($row->tanggal_tindak_lanjut)->translatedFormat('d M Y, H:i');
+            $row->decrypted_catatan = null;
+            if ($row->catatan) {
+                try {
+                    $row->decrypted_catatan = Crypt::decryptString($row->catatan);
+                } catch (\Throwable $e) {
+                    $row->decrypted_catatan = $row->catatan;
+                }
+            }
+        }
+
+        $totalTindakLanjut = $tindakLanjuts->count();
+        $tindakLanjutBelum = $tindakLanjuts->where('status', 'Belum ditangani')->count();
+        $tindakLanjutProses = $tindakLanjuts->where('status', 'Proses')->count();
+        $tindakLanjutSelesai = $tindakLanjuts->where('status', 'Selesai')->count();
+
+        // Siswa yang dikecualikan dari modal adalah siswa yang sudah pernah ditindaklanjuti
+        // DAN TIDAK MEMILIKI screening baru yang berstatus belum ditindaklanjuti.
+        // Jika siswa melakukan screening baru, mereka akan otomatis muncul kembali di daftar pilihan.
+        $fullyResolvedStudentIds = [];
+        foreach ($allTindakLanjuts->keys() as $sId) {
+            if (!isset($studentsWithPendingScreening[$sId])) {
+                $fullyResolvedStudentIds[] = $sId;
+            }
+        }
+
+        $studentsList = DB::table('users')
+            ->where('role', 'siswa')
+            ->whereNotIn('id', $fullyResolvedStudentIds)
+            ->select('id', 'name', 'kelas')
+            ->orderBy('name')
+            ->get();
 
         return view(
             'counselor.dashboard',
@@ -1319,9 +1513,173 @@ class BKController extends Controller
                 'totalStudents',
                 'totalAssessments',
                 'pendingBookingsCount',
-                'highRiskStudentsCount'
+                'highRiskStudentsCount',
+                'tindakLanjuts',
+                'totalTindakLanjut',
+                'tindakLanjutBelum',
+                'tindakLanjutProses',
+                'tindakLanjutSelesai',
+                'studentsList'
             )
         );
+    }
+
+    /**
+     * Simpan Pencatatan Tindak Lanjut Guru BK.
+     */
+    public function storeTindakLanjut(Request $request)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'guru_bk') {
+            abort(403, 'Akses terbatas untuk Guru BK.');
+        }
+
+        $validated = $request->validate([
+            'student_id' => ['required', 'integer', 'exists:users,id'],
+            'tanggal_tindak_lanjut' => ['required'],
+            'tindakan' => ['required', 'string', 'max:100'],
+            'status' => ['required', 'string', 'in:Belum ditangani,Proses,Selesai'],
+            'catatan' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $encryptedCatatan = null;
+        if (!empty($validated['catatan'])) {
+            $encryptedCatatan = Crypt::encryptString($validated['catatan']);
+        }
+
+        $tanggal = date('Y-m-d H:i:s', strtotime($validated['tanggal_tindak_lanjut']));
+
+        DB::table('tindak_lanjuts')->insert([
+            'student_id' => (int) $validated['student_id'],
+            'counselor_id' => Auth::id(),
+            'tanggal_tindak_lanjut' => $tanggal,
+            'tindakan' => $validated['tindakan'],
+            'status' => $validated['status'],
+            'catatan' => $encryptedCatatan,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->route('counselor.dashboard')
+            ->with('success', 'Catatan tindak lanjut berhasil disimpan.');
+    }
+
+    /**
+     * Update Pencatatan Tindak Lanjut Guru BK.
+     */
+    public function updateTindakLanjut(Request $request, $id)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'guru_bk') {
+            abort(403, 'Akses terbatas untuk Guru BK.');
+        }
+
+        $validated = $request->validate([
+            'student_id' => ['required', 'integer', 'exists:users,id'],
+            'tanggal_tindak_lanjut' => ['required'],
+            'tindakan' => ['required', 'string', 'max:100'],
+            'status' => ['required', 'string', 'in:Belum ditangani,Proses,Selesai'],
+            'catatan' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $record = DB::table('tindak_lanjuts')->where('id', $id)->first();
+        if (!$record) {
+            return back()->with('error', 'Data tindak lanjut tidak ditemukan.');
+        }
+
+        $encryptedCatatan = null;
+        if (!empty($validated['catatan'])) {
+            $encryptedCatatan = Crypt::encryptString($validated['catatan']);
+        }
+
+        $tanggal = date('Y-m-d H:i:s', strtotime($validated['tanggal_tindak_lanjut']));
+
+        DB::table('tindak_lanjuts')
+            ->where('id', $id)
+            ->update([
+                'student_id' => (int) $validated['student_id'],
+                'tanggal_tindak_lanjut' => $tanggal,
+                'tindakan' => $validated['tindakan'],
+                'status' => $validated['status'],
+                'catatan' => $encryptedCatatan,
+                'updated_at' => now(),
+            ]);
+
+        return redirect()->route('counselor.dashboard')
+            ->with('success', 'Catatan tindak lanjut berhasil diperbarui.');
+    }
+
+    /**
+     * Update Status Cepat Tindak Lanjut.
+     */
+    public function updateStatusTindakLanjut(Request $request, $id)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'guru_bk') {
+            abort(403, 'Akses terbatas untuk Guru BK.');
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', 'in:Belum ditangani,Proses,Selesai'],
+        ]);
+
+        DB::table('tindak_lanjuts')
+            ->where('id', $id)
+            ->update([
+                'status' => $validated['status'],
+                'updated_at' => now(),
+            ]);
+
+        return back()->with('success', 'Status tindak lanjut berhasil diubah menjadi: ' . $validated['status']);
+    }
+
+    /**
+     * Hapus Pencatatan Tindak Lanjut.
+     */
+    public function destroyTindakLanjut($id)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'guru_bk') {
+            abort(403, 'Akses terbatas untuk Guru BK.');
+        }
+
+        DB::table('tindak_lanjuts')->where('id', $id)->delete();
+
+        return redirect()->route('counselor.dashboard')
+            ->with('success', 'Catatan tindak lanjut berhasil dihapus.');
+    }
+
+    /**
+     * Hapus Hasil Screening I-DASS-Y Siswa (hanya yang sudah ditindak lanjuti).
+     */
+    public function destroyDassResult($id)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'guru_bk') {
+            abort(403, 'Akses terbatas untuk Guru BK.');
+        }
+
+        $result = DB::table('dass_results')->where('id', $id)->first();
+
+        if (!$result) {
+            return redirect()->route('counselor.dashboard')
+                ->with('error', 'Data screening tidak ditemukan.');
+        }
+
+        // Pastikan screening spesifik ini sudah memiliki tindak lanjut setelah tanggal screening sebelum boleh dihapus
+        $screeningTime = \Carbon\Carbon::parse($result->created_at)->subMinute();
+        $hasTindakLanjut = DB::table('tindak_lanjuts')
+            ->where('student_id', $result->student_id)
+            ->where(function ($q) use ($screeningTime) {
+                $q->where('tanggal_tindak_lanjut', '>=', $screeningTime)
+                  ->orWhere('created_at', '>=', $screeningTime);
+            })
+            ->exists();
+
+        if (!$hasTindakLanjut) {
+            return redirect()->route('counselor.dashboard')
+                ->with('error', 'Hanya hasil screening yang sudah ditindak lanjuti yang dapat dihapus.');
+        }
+
+        DB::table('dass_results')->where('id', $id)->delete();
+
+        return redirect()->route('counselor.dashboard')
+            ->with('success', 'Hasil screening I-DASS-Y berhasil dihapus.');
     }
 
 
@@ -2580,6 +2938,554 @@ class BKController extends Controller
 
     /*
     |--------------------------------------------------------------------------
+    | DAFTAR SISWA
+    |--------------------------------------------------------------------------
+    |
+    | Digunakan oleh Guru BK dan Kepala Sekolah untuk:
+    |
+    | - Melihat daftar siswa terdaftar
+    | - Filter berdasarkan kelas
+    | - Menghapus akun siswa
+    |
+    */
+
+
+    /**
+     * Daftar Siswa (Guru BK).
+     */
+    public function counselorStudentList(
+        Request $request
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK LOGIN
+        |--------------------------------------------------------------------------
+        */
+
+        if (!Auth::check()) {
+
+            return redirect()
+                ->route('login')
+                ->with(
+                    'error',
+                    'Silakan login terlebih dahulu.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK ROLE GURU BK
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            Auth::user()->role !== 'guru_bk'
+        ) {
+
+            abort(
+                403,
+                'Halaman ini hanya dapat diakses oleh Guru BK.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AMBIL DAFTAR KELAS
+        |--------------------------------------------------------------------------
+        */
+
+        $kelasList =
+            DB::table('users')
+                ->where('role', 'siswa')
+                ->whereNotNull('kelas')
+                ->where('kelas', '!=', '')
+                ->select('kelas')
+                ->distinct()
+                ->orderBy('kelas')
+                ->pluck('kelas');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | FILTER KELAS & SEARCH
+        |--------------------------------------------------------------------------
+        */
+
+        $filterKelas =
+            $request->query('kelas');
+
+        $search =
+            $request->query('search');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | QUERY SISWA
+        |--------------------------------------------------------------------------
+        */
+
+        $query =
+            DB::table('users')
+                ->where('role', 'siswa')
+                ->orderBy('kelas')
+                ->orderBy('name');
+
+
+        if (
+            $filterKelas &&
+            $filterKelas !== 'semua'
+        ) {
+
+            $query->where(
+                'kelas',
+                $filterKelas
+            );
+        }
+
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('kelas', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+
+        $siswaList =
+            $query->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | KIRIM DATA KE VIEW
+        |--------------------------------------------------------------------------
+        */
+
+        $deleteRouteName =
+            'counselor.siswa.destroy';
+
+        $pageTitle =
+            'Daftar Siswa - Dashboard BK';
+
+        $backRoute =
+            'counselor.dashboard';
+
+        $backLabel =
+            '← Kembali ke Dashboard BK';
+
+        $userRole =
+            'guru_bk';
+
+
+        return view(
+            'siswa.daftar-siswa',
+            compact(
+                'siswaList',
+                'kelasList',
+                'filterKelas',
+                'search',
+                'deleteRouteName',
+                'pageTitle',
+                'backRoute',
+                'backLabel',
+                'userRole'
+            )
+        );
+    }
+
+
+    /**
+     * Hapus Siswa (Guru BK).
+     */
+    public function counselorStudentDestroy(
+        $id
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK LOGIN
+        |--------------------------------------------------------------------------
+        */
+
+        if (!Auth::check()) {
+
+            return redirect()
+                ->route('login')
+                ->with(
+                    'error',
+                    'Silakan login terlebih dahulu.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK ROLE GURU BK
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            Auth::user()->role !== 'guru_bk'
+        ) {
+
+            abort(
+                403,
+                'Halaman ini hanya dapat diakses oleh Guru BK.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK SISWA ADA
+        |--------------------------------------------------------------------------
+        */
+
+        $siswa =
+            DB::table('users')
+                ->where('id', $id)
+                ->where('role', 'siswa')
+                ->first();
+
+
+        if (!$siswa) {
+
+            return redirect()
+                ->route(
+                    'counselor.siswa'
+                )
+                ->with(
+                    'error',
+                    'Siswa tidak ditemukan.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HAPUS DATA TERKAIT
+        |--------------------------------------------------------------------------
+        */
+
+        DB::table('dass_results')
+            ->where('student_id', $id)
+            ->delete();
+
+        DB::table('bookings')
+            ->where('student_id', $id)
+            ->delete();
+
+        DB::table('chats')
+            ->where('sender_id', $id)
+            ->orWhere('receiver_id', $id)
+            ->delete();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HAPUS SISWA
+        |--------------------------------------------------------------------------
+        */
+
+        DB::table('users')
+            ->where('id', $id)
+            ->where('role', 'siswa')
+            ->delete();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | REDIRECT
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()
+            ->route(
+                'counselor.siswa'
+            )
+            ->with(
+                'success',
+                'Siswa "' .
+                $siswa->name .
+                '" berhasil dihapus.'
+            );
+    }
+
+
+    /**
+     * Daftar Siswa (Kepala Sekolah).
+     */
+    public function principalStudentList(
+        Request $request
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK LOGIN
+        |--------------------------------------------------------------------------
+        */
+
+        if (!Auth::check()) {
+
+            return redirect()
+                ->route('login')
+                ->with(
+                    'error',
+                    'Silakan login terlebih dahulu.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK ROLE KEPALA SEKOLAH
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            Auth::user()->role !==
+            'kepala_sekolah'
+        ) {
+
+            abort(
+                403,
+                'Halaman ini hanya dapat diakses oleh Kepala Sekolah.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AMBIL DAFTAR KELAS
+        |--------------------------------------------------------------------------
+        */
+
+        $kelasList =
+            DB::table('users')
+                ->where('role', 'siswa')
+                ->whereNotNull('kelas')
+                ->where('kelas', '!=', '')
+                ->select('kelas')
+                ->distinct()
+                ->orderBy('kelas')
+                ->pluck('kelas');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | FILTER KELAS & SEARCH
+        |--------------------------------------------------------------------------
+        */
+
+        $filterKelas =
+            $request->query('kelas');
+
+        $search =
+            $request->query('search');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | QUERY SISWA
+        |--------------------------------------------------------------------------
+        */
+
+        $query =
+            DB::table('users')
+                ->where('role', 'siswa')
+                ->orderBy('kelas')
+                ->orderBy('name');
+
+
+        if (
+            $filterKelas &&
+            $filterKelas !== 'semua'
+        ) {
+
+            $query->where(
+                'kelas',
+                $filterKelas
+            );
+        }
+
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('kelas', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+
+        $siswaList =
+            $query->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | KIRIM DATA KE VIEW
+        |--------------------------------------------------------------------------
+        */
+
+        $deleteRouteName =
+            'principal.siswa.destroy';
+
+        $pageTitle =
+            'Daftar Siswa - Dashboard Kepala Sekolah';
+
+        $backRoute =
+            'principal.dashboard';
+
+        $backLabel =
+            '← Kembali ke Dashboard Kepsek';
+
+        $userRole =
+            'kepala_sekolah';
+
+
+        return view(
+            'siswa.daftar-siswa',
+            compact(
+                'siswaList',
+                'kelasList',
+                'filterKelas',
+                'search',
+                'deleteRouteName',
+                'pageTitle',
+                'backRoute',
+                'backLabel',
+                'userRole'
+            )
+        );
+    }
+
+
+    /**
+     * Hapus Siswa (Kepala Sekolah).
+     */
+    public function principalStudentDestroy(
+        $id
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK LOGIN
+        |--------------------------------------------------------------------------
+        */
+
+        if (!Auth::check()) {
+
+            return redirect()
+                ->route('login')
+                ->with(
+                    'error',
+                    'Silakan login terlebih dahulu.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK ROLE KEPALA SEKOLAH
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            Auth::user()->role !==
+            'kepala_sekolah'
+        ) {
+
+            abort(
+                403,
+                'Halaman ini hanya dapat diakses oleh Kepala Sekolah.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK SISWA ADA
+        |--------------------------------------------------------------------------
+        */
+
+        $siswa =
+            DB::table('users')
+                ->where('id', $id)
+                ->where('role', 'siswa')
+                ->first();
+
+
+        if (!$siswa) {
+
+            return redirect()
+                ->route(
+                    'principal.siswa'
+                )
+                ->with(
+                    'error',
+                    'Siswa tidak ditemukan.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HAPUS DATA TERKAIT
+        |--------------------------------------------------------------------------
+        */
+
+        DB::table('dass_results')
+            ->where('student_id', $id)
+            ->delete();
+
+        DB::table('bookings')
+            ->where('student_id', $id)
+            ->delete();
+
+        DB::table('chats')
+            ->where('sender_id', $id)
+            ->orWhere('receiver_id', $id)
+            ->delete();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HAPUS SISWA
+        |--------------------------------------------------------------------------
+        */
+
+        DB::table('users')
+            ->where('id', $id)
+            ->where('role', 'siswa')
+            ->delete();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | REDIRECT
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()
+            ->route(
+                'principal.siswa'
+            )
+            ->with(
+                'success',
+                'Siswa "' .
+                $siswa->name .
+                '" berhasil dihapus.'
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | PROFIL SISWA
     |--------------------------------------------------------------------------
     */
@@ -2778,56 +3684,17 @@ class BKController extends Controller
 
             abort(
                 403,
-                'Hanya Guru BK yang dapat mengubah profil siswa.'
+                'Hanya Guru BK yang dapat memperbarui catatan khusus siswa.'
             );
         }
 
-
         $request->validate([
-
-            'alamat' => [
-                'nullable',
-                'string',
-                'max:1000',
-            ],
-
-            'nama_orang_tua' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'kontak_darurat' => [
-                'nullable',
-                'string',
-                'max:50',
-            ],
-
             'catatan_sensitif' => [
                 'nullable',
                 'string',
                 'max:5000',
             ],
-
-            'kelas' => [
-                'nullable',
-                'string',
-                'max:50',
-            ],
-
-            'nama_wali_kelas' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'no_telepon' => [
-                'nullable',
-                'string',
-                'max:20',
-            ],
         ]);
-
 
         $student =
             DB::table('users')
@@ -2841,45 +3708,27 @@ class BKController extends Controller
                 )
                 ->first();
 
-
         if (!$student) {
-
             abort(
                 404,
                 'Siswa tidak ditemukan.'
             );
         }
 
-
         /*
         |--------------------------------------------------------------------------
-        | Pertahankan catatan lama
+        | Enkripsi Catatan Khusus & Riwayat Psikologis (AES-256)
+        | Guru BK hanya berwenang merubah catatan khusus, bukan profil siswa.
         |--------------------------------------------------------------------------
         */
 
-        $encryptedNote =
-            $student->catatan_sensitif
-            ?? null;
+        $encryptedNote = null;
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Enkripsi catatan baru
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $request->filled(
-                'catatan_sensitif'
-            )
-        ) {
-
-            $encryptedNote =
-                Crypt::encryptString(
-                    $request->catatan_sensitif
-                );
+        if ($request->filled('catatan_sensitif')) {
+            $encryptedNote = Crypt::encryptString(
+                $request->catatan_sensitif
+            );
         }
-
 
         DB::table('users')
             ->where(
@@ -2887,32 +3736,9 @@ class BKController extends Controller
                 $id
             )
             ->update([
-
-                'alamat' =>
-                    $request->alamat,
-
-                'nama_orang_tua' =>
-                    $request->nama_orang_tua,
-
-                'kontak_darurat' =>
-                    $request->kontak_darurat,
-
-                'kelas' =>
-                    $request->kelas,
-
-                'nama_wali_kelas' =>
-                    $request->nama_wali_kelas,
-
-                'no_telepon' =>
-                    $request->no_telepon,
-
-                'catatan_sensitif' =>
-                    $encryptedNote,
-
-                'updated_at' =>
-                    now(),
+                'catatan_sensitif' => $encryptedNote,
+                'updated_at' => now(),
             ]);
-
 
         return redirect()
             ->route(
@@ -2921,7 +3747,7 @@ class BKController extends Controller
             )
             ->with(
                 'success',
-                'Profil dan catatan siswa berhasil diperbarui.'
+                'Catatan khusus dan riwayat psikologis siswa berhasil diperbarui.'
             );
     }
 

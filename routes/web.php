@@ -333,6 +333,17 @@ Route::middleware('auth')->group(function () {
         'updateBookingStatus'
     ])->name('booking.status');
 
+    /*
+    |--------------------------------------------------------------------------
+    | HAPUS BOOKING KONSELING SELESAI
+    |--------------------------------------------------------------------------
+    */
+
+    Route::delete('/booking/{id}', [
+        BKController::class,
+        'destroyBooking'
+    ])->name('booking.destroy');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -376,6 +387,37 @@ Route::middleware('auth')->group(function () {
         BKController::class,
         'counselorDashboard'
     ])->name('counselor.dashboard');
+
+    /*
+    |--------------------------------------------------------------------------
+    | PENCATATAN TINDAK LANJUT GURU BK
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/counselor/tindak-lanjut', [
+        BKController::class,
+        'storeTindakLanjut'
+    ])->name('counselor.tindak-lanjut.store');
+
+    Route::put('/counselor/tindak-lanjut/{id}', [
+        BKController::class,
+        'updateTindakLanjut'
+    ])->name('counselor.tindak-lanjut.update');
+
+    Route::patch('/counselor/tindak-lanjut/{id}/status', [
+        BKController::class,
+        'updateStatusTindakLanjut'
+    ])->name('counselor.tindak-lanjut.status');
+
+    Route::delete('/counselor/tindak-lanjut/{id}', [
+        BKController::class,
+        'destroyTindakLanjut'
+    ])->name('counselor.tindak-lanjut.destroy');
+
+    Route::delete('/counselor/dass-result/{id}', [
+        BKController::class,
+        'destroyDassResult'
+    ])->name('counselor.dass-result.destroy');
 
 
     /*
@@ -429,6 +471,23 @@ Route::middleware('auth')->group(function () {
         BKController::class,
         'showStudentProfile'
     ])->name('counselor.student-profile');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Daftar Siswa (Guru BK)
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/counselor/siswa', [
+        BKController::class,
+        'counselorStudentList'
+    ])->name('counselor.siswa');
+
+    Route::delete('/counselor/siswa/{id}', [
+        BKController::class,
+        'counselorStudentDestroy'
+    ])->name('counselor.siswa.destroy');
 
 
     /*
@@ -508,15 +567,31 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | Daftar Siswa (Kepala Sekolah)
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/principal/siswa', [
+        BKController::class,
+        'principalStudentList'
+    ])->name('principal.siswa');
+
+    Route::delete('/principal/siswa/{id}', [
+        BKController::class,
+        'principalStudentDestroy'
+    ])->name('principal.siswa.destroy');
+
+
+    /*
+    |--------------------------------------------------------------------------
     | NOTIFIKASI
     |--------------------------------------------------------------------------
     */
 
 
     Route::post('/notifications/mark-read', function () {
-
+        session(['notifications_last_read_at' => now()->toDateTimeString()]);
         return back();
-
     })->name('notifications.markAllRead');
 
 
